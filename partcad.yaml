@@ -1,0 +1,71 @@
+# name: //pub/svc/commerce/lowes
+desc: The Lowes online store.
+
+docs:
+  intro: |
+    This package can be used for cost estimation for assemblies that use Lowes parts.
+    Placing orders is not implemented yet.
+
+  usage: |
+    Get an estimate for fastener assembly:
+
+    ```shell
+    $ pc supply quote --provider lowes hardware/fasteners/fastener_assembly
+    ...
+    INFO:  The following quotes are received:
+    INFO:           //pub/svc/commerce/lowes:lowes: 7294978550144407793: $2.26
+    INFO:                   //pub/svc/commerce/lowes:hardware/fasteners/bolts/hex_bolts/m4_0_7_x_20_mm_zinc_plated_hex_bolts_2_pieces#1
+    INFO:                   //pub/svc/commerce/lowes:hardware/fasteners/nuts/hex_nuts/4_mm_0_7_zinc_plated_metric_hex_nut_2_piece#1
+    ...
+    ```
+
+dependencies:
+  pub:
+    onlyInRoot: true
+    type: git
+    url: https://github.com/openvmp/partcad-index.git
+
+providers:
+  lowes:
+    type: store
+    parameters:
+      discountCode:
+        type: string
+
+render:
+  readme:
+
+parts:
+  hardware/fasteners/nuts/hex_nuts/4_mm_0_7_zinc_plated_metric_hex_nut_2_piece:
+    desc: 4 mm-0.7 Zinc-Plated Metric Hex Nut
+    vendor: lowes
+    sku: "3037536"
+    count_per_sku: 1
+    url: https://www.lowes.com/pd/Hillman-1-2-in-x-13-Galvanized-Steel-Hex-Nut/3037536
+    type: step # This model is sourced from https://grabcad.com/library/hexagonal-nut-m4-m5-m6-1
+
+
+  hardware/fasteners/bolts/hex_bolts/m4_0_7_x_20_mm_zinc_plated_hex_bolts_2_pieces:
+    desc: M4-0.7 x 20 mm Class 8.8 Zinc Plated Hex Bolt
+    vendor: lowes
+    sku: "3012751"
+    count_per_sku: 1
+    url: https://www.lowes.com/pd/Hillman-4mm-x-10mm-Zinc-Plated-Fine-Thread-Hex-Bolt-4-Count/3012751
+    type: step # This model is sourced from https://grabcad.com/library/hexagonal-bolt-m4-m5-m6-1
+
+  dimensional-lumber:
+    desc: Vertical 2x4
+    vendor: lowes
+    sku: "1001005926"
+    count_per_sku: 1
+    url: https://www.lowes.com/pd/2-in-x-4-in-x-4-ft-Pine-Lumber-Common-1-5-in-x-3-5-in-x-4-ft-Actual/1001005926
+    type: enrich
+    source: /pub/std/imperial/dimensional-lumber:lumber
+    with:
+      height: 2
+      width: 4
+    offset: [[0, 0, 0], [1, 0, 0], 90]
+    
+assemblies:
+  hardware/fasteners/fastener_assembly:
+    type: assy
