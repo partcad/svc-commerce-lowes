@@ -1,4 +1,4 @@
-# name: //pub/svc/commerce/lowes
+name: //pub/svc/commerce/lowes
 desc: The Lowes online store.
 
 docs:
