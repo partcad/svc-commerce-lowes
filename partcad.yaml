@@ -1,71 +1,243 @@
+partcad: ">=0.8.0"
 name: //pub/svc/commerce/lowes
-desc: The Lowes online store.
+desc: The Lowe's online store.
 
 docs:
   intro: |
-    This package can be used for cost estimation for assemblies that use Lowes parts.
-    Placing orders is not implemented yet.
+    This package can be used for cost estimates for assemblies that use Lowe's
+    products. Placing orders is not implemented yet.
 
-  usage: |
-    Get an estimate for fastener assembly:
+    ### Quotes
+
+    The provider `lowes` quotes any part declared with `vendor: lowes` and a
+    SKU, in this package or any other. A quote is what the products cost at one
+    Lowe's store, as their product pages on lowes.com say: each SKU in the cart
+    is found at lowes.com, priced once, and multiplied by the number of it to
+    order (whole packs, per `count_per_sku`); the quote is the sum. A product
+    page is read for its JSON-LD offer first and for the state the page's own
+    scripts start from second, and is only taken for the SKU's if it names the
+    SKU. Pages are kept for a day, separately for each store.
+
+    A SKU here is the Lowe's product ID: the number a product page's URL ends
+    with (`https://www.lowes.com/pd/<name>/<product ID>`), which is what Lowe's
+    own structured data calls the SKU. An item number ("Item #") or a model
+    number works too, as long as a search for it at lowes.com leads to the one
+    product.
+
+    lowes.com sits behind bot protection, and when that turns a request away
+    the quote fails, saying so, rather than coming back with a price that is
+    not one.
+
+    ### Dimensional lumber
+
+    Lumber and plywood are declared as instances of the standard sizes in
+    `//pub/std/imperial/dimensional-lumber`. Two generic templates,
+    `dimensional-lumber` and `plywood`, are the store's products of any size:
+    parametric, with the vendor and **no SKU**, since there is nothing to order
+    until a size is chosen. Each stocked product is an `enrich` of a template
+    at its nominal size, with the SKU it is sold under. The geometry is the
+    standard's, in its frame (width along X, length along Y, thickness along Z).
+
+    | Part                | Product                                                    | SKU        |
+    |---------------------|------------------------------------------------------------|------------|
+    | `lumber/2x4x8`      | Top Choice 2-in x 4-in x 8-ft #2 Southern Yellow Pine      | 1001854134 |
+    | `lumber/2x4x12`     | Top Choice 2-in x 4-in x 12-ft #2 & Better Spruce Pine Fir | 1001041436 |
+    | `lumber/2x6x8`      | Top Choice 2-in x 6-in x 8-ft #2 Fir                       | 4082904    |
+    | `lumber/4x4x8`      | 4-in x 4-in x 8-ft #2 & Better Douglas Fir (green)         | 1000028905 |
+    | `plywood/23-32x4x8` | 23/32-in x 4-ft x 8-ft Southern Yellow Pine BC Sanded      | 1003140514 |
+
+    A part cut to size from one of them names it as its stock, in the same
+    coordinates:
+
+    ```yaml
+    manufacturing:
+      method: subtractive
+      source: //pub/svc/commerce/lowes:lumber/4x4x8
+      cut:
+        cuts:
+          - along: +Y
+            length: $length in
+    ```
+
+    ### Choosing a store
+
+    Prices differ from one store to the next. Quotes are for the store the
+    provider's `storeNumber` names, Lowe's of Mooresville, NC unless it is told
+    otherwise. Ask a store of your own with a provider of your own:
+
+    ```yaml
+    providers:
+      lowes-near-me:
+        type: enrich
+        source: //pub/svc/commerce/lowes:lowes
+        with:
+          storeNumber: "1234"
+          zipCode: "12345"
+    ```
+
+    ### Development
+
+    The provider is `lowes.py`. Its tests run it the way PartCAD does, against
+    pages made up in the shapes lowes.com uses, and ask lowes.com for nothing:
 
     ```shell
-    $ pc supply quote --provider lowes hardware/fasteners/fastener_assembly
-    ...
-    INFO:  The following quotes are received:
-    INFO:           //pub/svc/commerce/lowes:lowes: 7294978550144407793: $2.26
-    INFO:                   //pub/svc/commerce/lowes:hardware/fasteners/bolts/hex_bolts/m4_0_7_x_20_mm_zinc_plated_hex_bolts_2_pieces#1
-    INFO:                   //pub/svc/commerce/lowes:hardware/fasteners/nuts/hex_nuts/4_mm_0_7_zinc_plated_metric_hex_nut_2_piece#1
-    ...
+    $ pip install pytest -r requirements.txt
+    $ python -m pytest tests
+    ```
+
+  usage: |
+    Get an estimate for an 8 ft. 4x4:
+
+    ```shell
+    $ pc supply quote --provider lowes lumber/4x4x8
+    ```
+
+    The quote's cart ID is `None`: nothing is put in a cart at lowes.com. Add
+    `--json` for the price of each SKU and the product page it was read from:
+
+    ```shell
+    $ pc -q supply quote --json --provider lowes lumber/2x4x8#6 lumber/4x4x8#4
+    ```
+
+    Get an estimate for 20 M4 hex nuts, which come in packs of 16 (two packs):
+
+    ```shell
+    $ pc supply quote --provider lowes hardware/fasteners/nuts/hex_nuts/4_mm_0_7_zinc_plated_steel_hex_nut_16_count#20
     ```
 
 dependencies:
   pub:
     onlyInRoot: true
     type: git
-    url: https://github.com/openvmp/partcad-index.git
+    url: https://github.com/partcad/partcad-index.git
+
+# The store supplies its own products: a part of this package is looked for at
+# the providers this package lists.
+suppliers:
+  lowes:
 
 providers:
   lowes:
     type: store
+    desc: Prices at one Lowe's store, read from lowes.com
     parameters:
-      discountCode:
+      storeNumber:
         type: string
+        desc: The Lowe's store to quote prices for (Lowe's of Mooresville, NC by default)
+        default: "0595"
+      zipCode:
+        type: string
+        desc: The ZIP code of the store
+        default: "28117"
+      currency:
+        type: string
+        default: USD
 
 render:
   readme:
 
 parts:
-  hardware/fasteners/nuts/hex_nuts/4_mm_0_7_zinc_plated_metric_hex_nut_2_piece:
-    desc: 4 mm-0.7 Zinc-Plated Metric Hex Nut
-    vendor: lowes
-    sku: "3037536"
-    count_per_sku: 1
-    url: https://www.lowes.com/pd/Hillman-1-2-in-x-13-Galvanized-Steel-Hex-Nut/3037536
+  hardware/fasteners/nuts/hex_nuts/4_mm_0_7_zinc_plated_steel_hex_nut_16_count:
+    desc: Hillman 4 mm-0.7 Zinc-Plated Steel Hex Nut (16-Count)
+    # https://www.lowes.com/pd/Hillman-4mm-x-0-7-Zinc-Plated-Steel-Hex-Nut-16-Count/999995424
+    # Item #755544, Model #127082
     type: step # This model is sourced from https://grabcad.com/library/hexagonal-nut-m4-m5-m6-1
-
-
-  hardware/fasteners/bolts/hex_bolts/m4_0_7_x_20_mm_zinc_plated_hex_bolts_2_pieces:
-    desc: M4-0.7 x 20 mm Class 8.8 Zinc Plated Hex Bolt
     vendor: lowes
-    sku: "3012751"
-    count_per_sku: 1
-    url: https://www.lowes.com/pd/Hillman-4mm-x-10mm-Zinc-Plated-Fine-Thread-Hex-Bolt-4-Count/3012751
-    type: step # This model is sourced from https://grabcad.com/library/hexagonal-bolt-m4-m5-m6-1
+    sku: "999995424"
+    count_per_sku: 16
+
+  # Dimensional lumber and plywood.
+  #
+  # Two generic templates, 'dimensional-lumber' and 'plywood': what this store
+  # sells, of any size, as the standard part it is a size of
+  # ('//pub/std/imperial/dimensional-lumber'). They are the store's products in
+  # general and not one of them in particular, so they carry the vendor and no
+  # SKU -- there is nothing to order until a size is chosen.
+  #
+  # Each product is then an instance of a template at the product's nominal
+  # size, with the SKU it is sold under. So the geometry is the standard's, in
+  # the standard's frame (width along X, length along Y, thickness along Z),
+  # and a part cut to size from one of these names it as its stock in those
+  # same coordinates. See '//pub/furniture/workspace/basic:imperial-desk-1',
+  # which is cut from the Home Depot products of the same sizes.
 
   dimensional-lumber:
-    desc: Vertical 2x4
+    desc: Dimensional lumber, by its nominal size (any size; see the products below for what is stocked)
+    type: alias
+    source: //pub/std/imperial/dimensional-lumber:lumber
     vendor: lowes
-    sku: "1001005926"
-    count_per_sku: 1
-    url: https://www.lowes.com/pd/2-in-x-4-in-x-4-ft-Pine-Lumber-Common-1-5-in-x-3-5-in-x-4-ft-Actual/1001005926
+
+  plywood:
+    desc: Plywood panels, by their nominal thickness (any size; see the products below for what is stocked)
+    type: alias
+    source: //pub/std/imperial/dimensional-lumber:plywood
+    vendor: lowes
+
+  lumber/2x4x8:
+    desc: "Top Choice 2-in x 4-in x 8-ft #2 Southern Yellow Pine Kiln-Dried Lumber"
+    # https://www.lowes.com/pd/Top-Choice-2-in-x-4-in-x-8-ft-Southern-Yellow-Pine-Lumber-Common-1-5-in-x-3-5-in-x-8-ft-Actual/1001854134
     type: enrich
-    source: /pub/std/imperial/dimensional-lumber:lumber
+    source: dimensional-lumber
     with:
-      height: 2
       width: 4
-    offset: [[0, 0, 0], [1, 0, 0], 90]
-    
-assemblies:
-  hardware/fasteners/fastener_assembly:
-    type: assy
+      height: 2
+      length: 96
+    vendor: lowes
+    sku: "1001854134"
+    count_per_sku: 1
+
+  lumber/2x4x12:
+    desc: "Top Choice 2-in x 4-in x 12-ft #2 & Better Spruce Pine Fir Kiln-Dried Lumber"
+    # https://www.lowes.com/pd/Top-Choice-2-in-x-4-in-x-12-ft-Spruce-Pine-Fir-Lumber-Common-1-5-in-x-3-5-in-x-12-ft-Actual/1001041436
+    type: enrich
+    source: dimensional-lumber
+    with:
+      width: 4
+      height: 2
+      length: 144
+    vendor: lowes
+    sku: "1001041436"
+    count_per_sku: 1
+
+  lumber/2x6x8:
+    desc: "Top Choice 2-in x 6-in x 8-ft #2 Fir Kiln-Dried Lumber"
+    # https://www.lowes.com/pd/Top-Choice-2-in-x-6-in-x-8-ft-Fir-Lumber-Common-1-5-in-x-5-5-in-x-8-ft-Actual/4082904
+    type: enrich
+    source: dimensional-lumber
+    with:
+      width: 6
+      height: 2
+      length: 96
+    vendor: lowes
+    sku: "4082904"
+    count_per_sku: 1
+
+  lumber/4x4x8:
+    desc: "4-in x 4-in x 8-ft #2 & Better Douglas Fir Green Lumber"
+    # https://www.lowes.com/pd/4-in-x-4-in-x-8-ft-Douglas-Fir-Lumber-Common-3-562-in-x-3-562-in-x-8-ft-Actual/1000028905
+    #
+    # Green lumber is dressed to 3-9/16 in. rather than the 3-1/2 in. of a
+    # kiln-dried 4x4, and the standard models the dry size: the difference is
+    # the 1/16 in. the standard's tolerance allows.
+    type: enrich
+    source: dimensional-lumber
+    with:
+      width: 4
+      height: 4
+      length: 96
+    vendor: lowes
+    sku: "1000028905"
+    count_per_sku: 1
+
+  plywood/23-32x4x8:
+    desc: 23/32-in x 4-ft x 8-ft Southern Yellow Pine BC Sanded Plywood
+    # https://www.lowes.com/pd/23-32-in-BC-Pine-Plywood/1003140514
+    type: enrich
+    source: plywood
+    with:
+      width: 48
+      length: 96
+      thickness: 0.75
+    vendor: lowes
+    sku: "1003140514"
+    count_per_sku: 1
