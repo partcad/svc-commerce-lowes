@@ -30,34 +30,53 @@ docs:
 
     ### Dimensional lumber
 
-    Lumber and plywood are declared as instances of the standard sizes in
-    `//pub/std/imperial/dimensional-lumber`. Two generic templates,
-    `dimensional-lumber` and `plywood`, are the store's products of any size:
-    parametric, with the vendor and **no SKU**, since there is nothing to order
-    until a size is chosen. Each stocked product is an `enrich` of a template
-    at its nominal size, with the SKU it is sold under. The geometry is the
-    standard's, in its frame (width along X, length along Y, thickness along Z).
+    Lumber and plywood are published as aliases of the sizes the standard
+    names in `//pub/std/imperial/dimensional-lumber/stock`, each with the SKU
+    it is sold under. The geometry is the standard's, in its frame (width
+    along X, length along Y, thickness along Z).
 
-    | Part                | Product                                                    | SKU        |
-    |---------------------|------------------------------------------------------------|------------|
-    | `lumber/2x4x8`      | Top Choice 2-in x 4-in x 8-ft #2 Southern Yellow Pine      | 1001854134 |
-    | `lumber/2x4x12`     | Top Choice 2-in x 4-in x 12-ft #2 & Better Spruce Pine Fir | 1001041436 |
-    | `lumber/2x6x8`      | Top Choice 2-in x 6-in x 8-ft #2 Fir                       | 4082904    |
-    | `lumber/4x4x8`      | 4-in x 4-in x 8-ft #2 & Better Douglas Fir (green)         | 1000028905 |
-    | `plywood/23-32x4x8` | 23/32-in x 4-ft x 8-ft Southern Yellow Pine BC Sanded      | 1003140514 |
+    | Part                | Product                                                    | Standard size     | SKU        |
+    |---------------------|------------------------------------------------------------|-------------------|------------|
+    | `lumber/2x4x8`      | Top Choice 2-in x 4-in x 8-ft #2 Southern Yellow Pine      | `lumber/2x4x8`    | 1001854134 |
+    | `lumber/2x4x12`     | Top Choice 2-in x 4-in x 12-ft #2 & Better Spruce Pine Fir | `lumber/2x4x12`   | 1001041436 |
+    | `lumber/2x6x8`      | Top Choice 2-in x 6-in x 8-ft #2 Fir                       | `lumber/2x6x8`    | 4082904    |
+    | `lumber/4x4x8`      | 4-in x 4-in x 8-ft #2 & Better Douglas Fir (green)         | `lumber/4x4x8`    | 1000028905 |
+    | `plywood/23-32x4x8` | 23/32-in x 4-ft x 8-ft Southern Yellow Pine BC Sanded      | `plywood/3-4x4x8` | 1003140514 |
 
-    A part cut to size from one of them names it as its stock, in the same
-    coordinates:
+    A part cut to size names the standard size as its stock, and lists this
+    store among its package's `suppliers:`. Being an alias of that size is what
+    makes this store a place to buy it, and any other store that publishes an
+    alias of the same size is one too (Home Depot does), so the part is bought
+    from whichever of them is asked:
 
     ```yaml
     manufacturing:
       method: subtractive
-      source: //pub/svc/commerce/lowes:lumber/4x4x8
+      source: //pub/std/imperial/dimensional-lumber/stock:lumber/4x4x8
       cut:
         cuts:
           - along: +Y
             length: $length in
     ```
+
+    Naming the product here instead (`//pub/svc/commerce/lowes:lumber/4x4x8`)
+    still works, and buys it here first. Being bought through an alias needs
+    PartCAD 0.9.25 or later.
+
+    The generic templates `dimensional-lumber` and `plywood` are still here:
+    the store's products of any size, with the vendor and **no SKU**, since
+    there is nothing to order until a size is chosen.
+
+    ### Screws for wood
+
+    The screws `//pub/furniture/workspace/basic` is put together with, which
+    Home Depot's package draws: each is an alias of Home Depot's part, with
+    the SKU Lowe's sells it under and as many as come with it.
+
+    | Part                 | Product                                                          | SKU        | In a box |
+    |----------------------|------------------------------------------------------------------|------------|----------|
+    | `screws/sdws22600db` | Simpson Strong-Tie Strong-Drive SDWS Timber 0.220 x 6-in (SDWS22600DB-RP1) | 1002703110 | 1        |
+    | `screws/spax-8x2`    | SPAX #8 x 2-in Yellow Zinc Flat Head Interior Wood Screws        | 5001699237 | 161      |
 
     ### Choosing a store
 
@@ -154,12 +173,14 @@ parts:
   # general and not one of them in particular, so they carry the vendor and no
   # SKU -- there is nothing to order until a size is chosen.
   #
-  # Each product is then an instance of a template at the product's nominal
-  # size, with the SKU it is sold under. So the geometry is the standard's, in
-  # the standard's frame (width along X, length along Y, thickness along Z),
-  # and a part cut to size from one of these names it as its stock in those
-  # same coordinates. See '//pub/furniture/workspace/basic:imperial-desk-1',
-  # which is cut from the Home Depot products of the same sizes.
+  # Each product is an alias of the size it is in
+  # '//pub/std/imperial/dimensional-lumber/stock', with the SKU it is sold
+  # under. So the geometry is the standard's, in the standard's frame (width
+  # along X, length along Y, thickness along Z), and a part cut to size names
+  # the standard size as its stock in those same coordinates. Being an alias of
+  # it is what makes this store a place to buy that size (see
+  # '//pub/furniture/workspace/basic:imperial-desk-1', which buys from this
+  # store or from Home Depot).
 
   dimensional-lumber:
     desc: Dimensional lumber, by its nominal size (any size; see the products below for what is stocked)
@@ -176,12 +197,8 @@ parts:
   lumber/2x4x8:
     desc: "Top Choice 2-in x 4-in x 8-ft #2 Southern Yellow Pine Kiln-Dried Lumber"
     # https://www.lowes.com/pd/Top-Choice-2-in-x-4-in-x-8-ft-Southern-Yellow-Pine-Lumber-Common-1-5-in-x-3-5-in-x-8-ft-Actual/1001854134
-    type: enrich
-    source: dimensional-lumber
-    with:
-      width: 4
-      height: 2
-      length: 96
+    type: alias
+    source: //pub/std/imperial/dimensional-lumber/stock:lumber/2x4x8
     vendor: lowes
     sku: "1001854134"
     count_per_sku: 1
@@ -189,12 +206,8 @@ parts:
   lumber/2x4x12:
     desc: "Top Choice 2-in x 4-in x 12-ft #2 & Better Spruce Pine Fir Kiln-Dried Lumber"
     # https://www.lowes.com/pd/Top-Choice-2-in-x-4-in-x-12-ft-Spruce-Pine-Fir-Lumber-Common-1-5-in-x-3-5-in-x-12-ft-Actual/1001041436
-    type: enrich
-    source: dimensional-lumber
-    with:
-      width: 4
-      height: 2
-      length: 144
+    type: alias
+    source: //pub/std/imperial/dimensional-lumber/stock:lumber/2x4x12
     vendor: lowes
     sku: "1001041436"
     count_per_sku: 1
@@ -202,12 +215,8 @@ parts:
   lumber/2x6x8:
     desc: "Top Choice 2-in x 6-in x 8-ft #2 Fir Kiln-Dried Lumber"
     # https://www.lowes.com/pd/Top-Choice-2-in-x-6-in-x-8-ft-Fir-Lumber-Common-1-5-in-x-5-5-in-x-8-ft-Actual/4082904
-    type: enrich
-    source: dimensional-lumber
-    with:
-      width: 6
-      height: 2
-      length: 96
+    type: alias
+    source: //pub/std/imperial/dimensional-lumber/stock:lumber/2x6x8
     vendor: lowes
     sku: "4082904"
     count_per_sku: 1
@@ -219,12 +228,8 @@ parts:
     # Green lumber is dressed to 3-9/16 in. rather than the 3-1/2 in. of a
     # kiln-dried 4x4, and the standard models the dry size: the difference is
     # the 1/16 in. the standard's tolerance allows.
-    type: enrich
-    source: dimensional-lumber
-    with:
-      width: 4
-      height: 4
-      length: 96
+    type: alias
+    source: //pub/std/imperial/dimensional-lumber/stock:lumber/4x4x8
     vendor: lowes
     sku: "1000028905"
     count_per_sku: 1
@@ -232,12 +237,36 @@ parts:
   plywood/23-32x4x8:
     desc: 23/32-in x 4-ft x 8-ft Southern Yellow Pine BC Sanded Plywood
     # https://www.lowes.com/pd/23-32-in-BC-Pine-Plywood/1003140514
-    type: enrich
-    source: plywood
-    with:
-      width: 48
-      length: 96
-      thickness: 0.75
+    type: alias
+    source: //pub/std/imperial/dimensional-lumber/stock:plywood/3-4x4x8
     vendor: lowes
     sku: "1003140514"
     count_per_sku: 1
+
+  # Screws for wood: the ones '//pub/furniture/workspace/basic' is put
+  # together with. Home Depot's package draws them (from the sizes their
+  # product pages give); Lowe's sells the same screws, so each is an alias of
+  # Home Depot's part with the SKU Lowe's sells it under. A part Home Depot's
+  # package declares is still bought here when Lowe's is the store asked:
+  # PartCAD hands each store the SKU it sells a part as.
+
+  screws/sdws22600db:
+    desc: Simpson Strong-Tie Strong-Drive SDWS Timber Screw, 0.220 in. x 6 in. T40, Exterior Grade (1-Count)
+    # https://www.lowes.com/pd/Simpson-Strong-Tie-Strong-Drive-174-SDWS-TIMBER-Screw-Exterior-Grade-8212-0-220-in-x-6-in-T40/1002703110
+    # Item #1944442, Model #SDWS22600DB-RP1: the SDWS22600DB Home Depot sells
+    # in twelves, one at a time.
+    type: alias
+    source: //pub/svc/commerce/homedepot:screws/sdws22600db
+    vendor: lowes
+    sku: "1002703110"
+    count_per_sku: 1
+
+  screws/spax-8x2:
+    desc: "SPAX #8 x 2-in Yellow Zinc Flat Head T-Star Plus Interior Wood Screws (161-Per Box)"
+    # https://www.lowes.com/pd/SPAX-8-x-2-in-SPAX-Flat-Head-T-Star-Drive-Yellow-Zinc-Coated-Screw-1LB-Box-161CT/5001699237
+    # Model #4191020400504.
+    type: alias
+    source: //pub/svc/commerce/homedepot:screws/spax-8x2
+    vendor: lowes
+    sku: "5001699237"
+    count_per_sku: 161
